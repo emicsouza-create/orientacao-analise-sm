@@ -105,25 +105,19 @@ legend{font-family:var(--display);font-weight:700;font-size:16px;padding:0 6px}
 
 <div class="bar"><div class="bar-in">
   <h1>Orientação Análise SM</h1>
-  <div class="pick"><label class="sm" for="selCliente">Cliente</label><select id="selCliente"></select><button id="btnCliente" class="ghost" title="Cadastrar cliente">+ Cliente</button></div>
+  <div class="pick"><label class="sm" for="selCliente">Cliente</label><select id="selCliente"></select></div>
   <div class="pick"><label class="sm" for="selAnalise">Período</label><select id="selAnalise"></select><button id="btnNova" class="primary">Nova análise</button></div>
 </div></div>
 
 <div class="wrap">
-  <div id="novoCliente" class="row note" style="margin-top:14px" hidden>
-    <label for="inpCliente">Nome do cliente ou perfil</label>
-    <input type="text" id="inpCliente" placeholder="@perfil ou nome">
-    <button id="btnSalvarCliente" class="primary">Cadastrar</button>
-    <button id="btnCancelarCliente" class="ghost">Cancelar</button>
-  </div>
   <div class="tabs" role="tablist">
-    <button role="tab" data-tab="dash" aria-selected="true">Dashboard</button>
-    <button role="tab" data-tab="dados" aria-selected="false">Estratégia e números</button>
+    <button role="tab" data-tab="dados" aria-selected="true">Estratégia e números</button>
+    <button role="tab" data-tab="dash" aria-selected="false">Dashboard</button>
     <button role="tab" data-tab="gloss" aria-selected="false">Como ler cada métrica</button>
   </div>
   <p id="status" class="note" style="margin-bottom:18px">Carregando suas análises…</p>
-  <main id="dash" class="stack"></main>
-  <main id="dados" class="stack" hidden></main>
+  <main id="dados" class="stack"></main>
+  <main id="dash" class="stack" hidden></main>
   <main id="gloss" hidden></main>
 </div>
 
@@ -189,10 +183,11 @@ const Store={db:null,local:false,
  flush(){try{localStorage.setItem('oasm',JSON.stringify({clientes:S.clientes,analises:S.analises}))}catch(e){}}
 };
 
-const S={clientes:[],analises:[],clienteId:null,analiseId:null,tab:'dash',draft:null,metFormato:'interacoes',sample:null,canImg:false,ctl:null};
+const S={clientes:[],analises:[],clienteId:null,analiseId:null,tab:'dados',draft:null,metFormato:'interacoes',sample:null,canImg:false,ctl:null};
 const doCliente=()=>S.analises.filter(a=>a.clienteId===S.clienteId).sort((a,b)=>(b.fim||'').localeCompare(a.fim||''));
 const atual=()=>S.analises.find(a=>a.id===S.analiseId)||(S.clientes.length?null:EXEMPLO);
-const novoDraft=()=>({id:uid('a'),clienteId:S.clienteId,periodoDias:30,inicio:'',fim:'',trafego:false,estrategia:'',objetivo:'',n:{},anteriores:[{},{},{}],conteudos:[{},{},{}],fechamento:{funcionou:'',melhoria:'',acoes:''},analiseIA:''});
+const nomeCliente=id=>S.clientes.find(c=>c.id===id)?.nome||'';
+const novoDraft=()=>({id:uid('a'),clienteId:S.clienteId,clienteNome:nomeCliente(S.clienteId),periodoDias:30,inicio:'',fim:'',trafego:false,estrategia:'',objetivo:'',n:{},anteriores:[{},{},{}],conteudos:[{},{},{}],fechamento:{funcionou:'',melhoria:'',acoes:''},analiseIA:''});
 
 /* ---------- cálculos ---------- */
 function calc(a){const n=a.n||{};
@@ -259,12 +254,12 @@ function leitura(a){const n=a.n||{},c=calc(a),ok=[],mel=[],info=[];
 /* ---------- dashboard ---------- */
 const chip=t=>t?`<span class="chip ${t.c}">${t.i} ${esc(t.t)}</span>`:'';
 function renderDash(){const a=atual(),el=$('#dash');
- if(!a){el.innerHTML=`<div class="note">Este cliente ainda não tem análise. Clique em <b>Nova análise</b> para informar a estratégia, o objetivo e os números do período.</div>`;return}
+ if(!a){el.innerHTML=`<div class="note">Este cliente ainda não tem análise salva. Preencha a aba <b>Estratégia e números</b>.</div>`;return}
  const n=a.n||{},c=calc(a),L=leitura(a),se=series(a),tp=tops(a),pf=porFormato(a,S.metFormato),max=Math.max(...pf.map(p=>p.m),1);
  const temas=porGrupo(a,'tema'),ctas=porGrupo(a,'cta'),f=a.fechamento||{};
  const dl=rows=>`<dl>${rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
  el.innerHTML=`
- ${a.exemplo?`<div class="note"><b>Exemplo com dados fictícios.</b> Cadastre um cliente em “+ Cliente” e crie a primeira análise para ver os números reais aqui.</div>`:''}
+ ${a.exemplo?`<div class="note"><b>Exemplo com dados fictícios.</b> Preencha a aba “Estratégia e números” e salve para ver os números reais aqui.</div>`:''}
  <section><div class="ctx">
    <div><span class="sm">Macro estratégia</span><p>${esc(a.estrategia)||'Não informada'}</p></div>
    <div><span class="sm">Objetivo do período</span><p>${esc(a.objetivo)||'Não informado'}</p></div>
@@ -332,11 +327,10 @@ function renderDash(){const a=atual(),el=$('#dash');
 
 /* ---------- formulário ---------- */
 function renderForm(){const d=S.draft,el=$('#dados');
- if(!d){el.innerHTML=`<div class="note">Selecione um cliente e clique em <b>Nova análise</b>.</div>`;return}
- const cli=S.clientes.find(c=>c.id===d.clienteId);
  el.innerHTML=`
- <section><h2>${cli?esc(cli.nome):'Cliente não selecionado'}</h2><p class="sub">Comece pelo contexto: sem estratégia e objetivo, o número não tem com o que ser comparado. Deixe em branco o que não tiver.</p></section>
+ <section><h2>${S.analises.some(a=>a.id===d.id)?'Editar análise':'Nova análise'}</h2><p class="sub">Comece pelo contexto: sem estratégia e objetivo, o número não tem com o que ser comparado. Deixe em branco o que não tiver.</p></section>
  <fieldset><legend>Contexto</legend><div class="fields">
+  <label class="f" style="grid-column:1/-1"><span>Cliente ou perfil</span><input type="text" id="d_cliente" list="listaClientes" value="${esc(d.clienteNome||'')}" placeholder="@perfil ou nome"><datalist id="listaClientes">${S.clientes.map(c=>`<option value="${esc(c.nome)}"></option>`).join('')}</datalist></label>
   <label class="f" style="grid-column:1/-1"><span>Qual era a macro estratégia? (do trimestre; se não houver, do mês ou o objetivo principal)</span><textarea id="d_estrategia">${esc(d.estrategia)}</textarea></label>
   <label class="f" style="grid-column:1/-1"><span>Qual era o objetivo do período que está sendo analisado?</span><textarea id="d_objetivo">${esc(d.objetivo)}</textarea></label>
   <label class="f"><span>Período analisado</span><select id="d_periodo">${[15,30,60,90].map(p=>`<option value="${p}" ${p===d.periodoDias?'selected':''}>Últimos ${p} dias</option>`).join('')}</select></label>
@@ -364,7 +358,7 @@ function renderForm(){const d=S.draft,el=$('#dados');
  <div class="row"><button id="btnSalvar" class="primary">Salvar e ver dashboard</button><span id="saveMsg" class="sub"></span></div>`;
 }
 function lerForm(){const d=S.draft;if(!d||!$('#d_estrategia'))return;
- d.estrategia=$('#d_estrategia').value.trim();d.objetivo=$('#d_objetivo').value.trim();d.periodoDias=+$('#d_periodo').value;
+ d.clienteNome=$('#d_cliente').value.trim();d.estrategia=$('#d_estrategia').value.trim();d.objetivo=$('#d_objetivo').value.trim();d.periodoDias=+$('#d_periodo').value;
  d.inicio=$('#d_inicio').value;d.fim=$('#d_fim').value;d.trafego=$('#d_trafego').value==='1';
  d.n={};$$('[data-n]').forEach(i=>{const v=num(i.value);if(v!=null)d.n[i.dataset.n]=v});
  d.anteriores=[{},{},{}];$$('[data-p]').forEach(i=>{const k=i.dataset.k,v=k==='rotulo'?i.value.trim():num(i.value);if(v!==''&&v!=null)d.anteriores[+i.dataset.p][k]=v});
@@ -382,17 +376,20 @@ function renderBar(){
 function setTab(t){S.tab=t;$$('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
  ['dash','dados','gloss'].forEach(id=>$('#'+id).hidden=id!==t);
  if(t==='dash')renderDash();if(t==='dados')renderForm();}
-function escolherCliente(id){S.clienteId=id;const as=doCliente();S.analiseId=as[0]?.id||null;S.draft=as[0]?structuredClone(as[0]):null;renderBar();setTab(S.tab)}
+function escolherCliente(id){S.clienteId=id;const as=doCliente();S.analiseId=as[0]?.id||null;S.draft=as[0]?{...structuredClone(as[0]),clienteNome:nomeCliente(id)}:novoDraft();renderBar();setTab(S.tab)}
 function status(t){const s=$('#status');s.hidden=!t;s.textContent=t||''}
 
 async function salvarAnalise(){lerForm();const d=S.draft,m=$('#saveMsg');
- if(!S.clientes.some(c=>c.id===d.clienteId)){m.textContent='Cadastre um cliente em “+ Cliente” antes de salvar.';return}
+ if(!d.clienteNome){m.textContent='Informe o cliente ou perfil.';$('#d_cliente').focus();return}
  if(!d.estrategia||!d.objetivo){m.textContent='Informe a macro estratégia e o objetivo do período.';$('#d_estrategia').focus();return}
+ let cli=S.clientes.find(c=>c.nome.toLowerCase()===d.clienteNome.toLowerCase()),cliNovo=false;
+ if(!cli){cli={id:uid('c'),nome:d.clienteNome,criadoEm:new Date().toISOString()};S.clientes.push(cli);cliNovo=true}
+ d.clienteId=cli.id;
  d.conteudos=d.conteudos.filter(c=>c&&c.titulo);d.atualizadoEm=new Date().toISOString();
  $('#btnSalvar').disabled=true;m.textContent='Salvando…';
- const i=S.analises.findIndex(a=>a.id===d.id),copia=structuredClone(d);
+ const i=S.analises.findIndex(a=>a.id===d.id),copia=structuredClone(d);delete copia.clienteNome;
  if(i>=0)S.analises[i]=copia;else S.analises.push(copia);
- try{await Store.put('analises',copia);S.analiseId=d.id;renderBar();setTab('dash');window.scrollTo(0,0)}
+ try{if(cliNovo)await Store.put('clientes',cli);await Store.put('analises',copia);S.clienteId=cli.id;S.analiseId=d.id;renderBar();setTab('dash');window.scrollTo(0,0)}
  catch(e){m.textContent='Não foi possível salvar agora. Seus números continuam na tela; tente de novo em instantes.';$('#btnSalvar').disabled=false}
 }
 async function atualizar(a,msgEl,okTxt){try{await Store.put('analises',a);if(msgEl)msgEl.textContent=okTxt}catch(e){if(msgEl)msgEl.textContent='Não foi possível salvar agora. Tente de novo.'}}
@@ -459,19 +456,12 @@ async function escreverIA(){const a=atual(),out=$('#iaOut'),msg=$('#iaMsg'),b=$(
 
 /* ---------- eventos ---------- */
 document.addEventListener('click',async e=>{const t=e.target.closest('button');if(!t)return;
- if(t.dataset.tab){if(S.tab==='dados')lerForm();if(t.dataset.tab==='dados'&&!S.draft&&S.clienteId)S.draft=novoDraft();setTab(t.dataset.tab);return}
- if(t.id==='btnCliente'){$('#novoCliente').hidden=false;$('#inpCliente').focus();return}
- if(t.id==='btnCancelarCliente'){$('#novoCliente').hidden=true;return}
- if(t.id==='btnSalvarCliente'){const nome=$('#inpCliente').value.trim();if(!nome){$('#inpCliente').focus();return}
-  const c={id:uid('c'),nome,criadoEm:new Date().toISOString()};S.clientes.push(c);t.disabled=true;
-  try{await Store.put('clientes',c);$('#inpCliente').value='';$('#novoCliente').hidden=true;S.clienteId=c.id;S.analiseId=null;S.draft=novoDraft();renderBar();setTab('dados')}
-  catch(err){S.clientes.pop();status('Não foi possível cadastrar o cliente agora. Tente de novo.')}
-  t.disabled=false;return}
- if(t.id==='btnNova'){if(!S.clienteId){$('#novoCliente').hidden=false;$('#inpCliente').focus();return}S.draft=novoDraft();setTab('dados');window.scrollTo(0,0);return}
+ if(t.dataset.tab){if(S.tab==='dados')lerForm();if(t.dataset.tab==='dados'&&!S.draft)S.draft=novoDraft();setTab(t.dataset.tab);return}
+ if(t.id==='btnNova'){S.draft=novoDraft();setTab('dados');window.scrollTo(0,0);return}
  if(t.id==='btnAddC'){lerForm();S.draft.conteudos.push({});renderForm();$('#c_'+(S.draft.conteudos.length-1)+'_titulo')?.focus();return}
  if(t.dataset.rm!=null){lerForm();S.draft.conteudos.splice(+t.dataset.rm,1);renderForm();return}
  if(t.id==='btnSalvar'){salvarAnalise();return}
- if(t.id==='btnEditar'){S.draft=structuredClone(atual());setTab('dados');window.scrollTo(0,0);return}
+ if(t.id==='btnEditar'){S.draft={...structuredClone(atual()),clienteNome:nomeCliente(atual().clienteId)};setTab('dados');window.scrollTo(0,0);return}
  if(t.id==='btnFech'){const a=atual();a.fechamento={funcionou:$('#fx_funcionou').value,melhoria:$('#fx_melhoria').value,acoes:$('#fx_acoes').value};$('#fechMsg').textContent='Salvando…';atualizar(a,$('#fechMsg'),'Fechamento salvo.');return}
  if(t.id==='btnExcluir'){if(t.dataset.ok){const id=S.analiseId;S.analises=S.analises.filter(a=>a.id!==id);try{await Store.del('analises',id)}catch(err){}escolherCliente(S.clienteId)}
   else{t.dataset.ok=1;t.textContent='Confirmar exclusão';}return}
@@ -479,8 +469,8 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
  if(t.id==='btnStop'){S.ctl?.abort();return}
 });
 document.addEventListener('change',e=>{const t=e.target;
- if(t.id==='selCliente')escolherCliente(t.value);
- if(t.id==='selAnalise'){S.analiseId=t.value;S.draft=structuredClone(atual());setTab(S.tab)}
+ if(t.id==='selCliente'){S.tab='dash';escolherCliente(t.value)}
+ if(t.id==='selAnalise'){S.analiseId=t.value;S.draft={...structuredClone(atual()),clienteNome:nomeCliente(S.clienteId)};setTab('dash')}
  if(t.id==='selMet'){S.metFormato=t.value;renderDash()}
  if(t.id==='inpPrints')lerPrints([...t.files]);
 });
@@ -502,11 +492,13 @@ $('#gloss').innerHTML=`<div class="gloss">${[
 ].map(([t,d])=>`<div class="blk"><h3>${t}</h3><p>${d}</p></div>`).join('')}</div>`;
 
 /* ---------- início ---------- */
-renderBar();renderDash();
+S.draft=novoDraft();renderBar();renderForm();
 (async()=>{
  const d=await Store.init();S.clientes=d.clientes;S.analises=d.analises;
  status(Store.local?'As análises ficam salvas só neste navegador.':'');
- if(S.clientes.length)escolherCliente(S.clientes[0].id);else{renderBar();setTab(S.tab)}
+ const mexeu=$$('#dados input[type=text],#dados textarea').some(i=>i.value);
+ if(S.clientes.length){S.clienteId=S.clientes[0].id;S.analiseId=doCliente()[0]?.id||null}
+ renderBar();if(!mexeu){S.draft=novoDraft();S.draft.clienteNome='';renderForm()}
  try{S.sample=window.claude&&window.claude.use?await window.claude.use('sample'):null}catch(e){S.sample=null}
  if(S.sample){const caps=await S.sample.limits().catch(()=>null);S.canImg=!!caps?.images;
   if($('#secIA'))$('#secIA').hidden=false;if($('#prints'))$('#prints').hidden=!S.canImg}
