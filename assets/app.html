@@ -1,0 +1,514 @@
+<title>Orientação Análise SM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: barra fixa de cliente/período no topo, três abas (Dashboard, Dados, Glossário); o dashboard lê de cima para baixo: contexto → números → comparativo → conteúdos → leitura → fechamento. */
+:root{
+  --bg:#f5f4f8; --surface:#ffffff; --sunk:#eeecf3; --ink:#1b1524; --ink2:#564d63; --muted:#857d91; --line:#e2deea;
+  --accent:#a3246a; --accent-ink:#ffffff; --series:#2a78d6; --series-soft:#cde2fb;
+  --good:#006300; --good-bg:#e3f3e3; --bad:#b42318; --bad-bg:#fbe7e4; --neutral-bg:#eeecf3;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#131018; --surface:#1d1924; --sunk:#262130; --ink:#f4f1f8; --ink2:#c6bed1; --muted:#9189a0; --line:#322b3d;
+  --accent:#f078ae; --accent-ink:#1b1524; --series:#3987e5; --series-soft:#184f95;
+  --good:#5fd068; --good-bg:#17301b; --bad:#f58a7e; --bad-bg:#3a1b18; --neutral-bg:#262130; color-scheme:dark } }
+:root[data-theme="dark"]{
+  --bg:#131018; --surface:#1d1924; --sunk:#262130; --ink:#f4f1f8; --ink2:#c6bed1; --muted:#9189a0; --line:#322b3d;
+  --accent:#f078ae; --accent-ink:#1b1524; --series:#3987e5; --series-soft:#184f95;
+  --good:#5fd068; --good-bg:#17301b; --bad:#f58a7e; --bad-bg:#3a1b18; --neutral-bg:#262130; color-scheme:dark }
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--body);margin:0}
+.wrap{max-width:1120px;margin:0 auto;padding-inline:16px;padding-block:0 64px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:20px;font-weight:700}
+h2{font-size:22px;font-weight:700}
+h3{font-size:16px;font-weight:500}
+p{margin:0}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding-block:12px}
+.bar-in{max-width:1120px;margin:0 auto;padding-inline:16px;display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center}
+.bar h1{margin-right:auto}
+.pick{display:flex;gap:6px;align-items:center;min-width:0}
+label.sm,.sm{font-size:12px;color:var(--muted);letter-spacing:.04em;text-transform:uppercase;font-weight:600}
+select,input,textarea,button{font:inherit;color:inherit}
+select,input[type=text],input[type=date],textarea{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0;max-width:100%}
+textarea{width:100%;min-height:92px;resize:vertical}
+select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{cursor:pointer;border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:8px 14px;font-weight:600}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+button.ghost{background:transparent}
+button.danger{color:var(--bad)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.tabs{display:flex;gap:4px;margin-block:18px 20px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:10px 14px;color:var(--ink2);white-space:nowrap}
+.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.note{background:var(--sunk);border-radius:10px;padding:10px 14px;color:var(--ink2);font-size:14px}
+.stack{display:flex;flex-direction:column;gap:28px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+section>h2{margin-bottom:12px}
+.sub{color:var(--ink2);font-size:14px;max-width:68ch}
+/* contexto */
+.ctx{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;border-left:4px solid var(--accent);padding-left:16px}
+.ctx>div{min-width:0}
+.ctx p{overflow-wrap:anywhere}
+/* blocos de números */
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.blk{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;min-width:0;display:flex;flex-direction:column;gap:10px}
+.big{font-family:var(--display);font-size:34px;font-weight:700;line-height:1}
+.big small{font:500 13px var(--body);color:var(--ink2);margin-left:6px}
+dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-size:14px}
+dt{color:var(--ink2)} dd{margin:0;font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.chip{display:inline-flex;gap:4px;align-items:center;font-size:12px;font-weight:600;border-radius:99px;padding:2px 9px;white-space:nowrap;background:var(--neutral-bg);color:var(--ink2)}
+.chip.good{background:var(--good-bg);color:var(--good)} .chip.bad{background:var(--bad-bg);color:var(--bad)}
+/* tabelas */
+.scroll{overflow-x:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:10px 12px;text-align:right;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+tbody tr:last-child td{border-bottom:0}
+td .var{display:block;font-size:12px;font-weight:500;color:var(--muted)}
+td .var.up{color:var(--good)} td .var.down{color:var(--bad)}
+td.now{font-weight:700;background:var(--sunk)}
+/* listas de melhores */
+.tops{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px}
+.tops ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+.tops li{display:grid;grid-template-columns:1fr auto;gap:2px 10px;font-size:14px}
+.tops li b{font-variant-numeric:tabular-nums}
+.tops li span{overflow-wrap:anywhere}
+.tops li em{grid-column:1/-1;font-style:normal;font-size:12px;color:var(--muted)}
+/* barras formato */
+.bars{display:flex;flex-direction:column;gap:10px}
+.bar-row{display:grid;grid-template-columns:minmax(90px,130px) 1fr minmax(64px,auto);gap:10px;align-items:center;font-size:14px}
+.bar-row .track{height:18px;border-left:1px solid var(--line)}
+.bar-row .fill{height:100%;background:var(--series);border-radius:0 4px 4px 0;min-width:2px}
+.bar-row b{font-variant-numeric:tabular-nums;text-align:right}
+.bar-row small{color:var(--muted)}
+/* leitura */
+.read{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.read ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:8px;font-size:14px}
+.ia{white-space:pre-wrap;font-size:15px;max-width:72ch}
+/* formulário */
+fieldset{border:1px solid var(--line);border-radius:12px;padding:16px;margin:0;background:var(--surface);min-width:0}
+legend{font-family:var(--display);font-weight:700;font-size:16px;padding:0 6px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.f{display:flex;flex-direction:column;gap:4px;min-width:0;font-size:13px;color:var(--ink2)}
+.f input,.f select{width:100%}
+.f.filled input{border-color:var(--accent)}
+.entry td,.entry th{padding:6px;white-space:normal}
+.entry input,.entry select{width:100%;min-width:76px;padding:6px 8px}
+.entry td:first-child input{min-width:180px}
+.gloss{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.gloss p{font-size:14px;color:var(--ink2)}
+@media (prefers-reduced-motion:no-preference){ .bar-row .fill{transition:width .3s} }
+</style>
+
+<div class="bar"><div class="bar-in">
+  <h1>Orientação Análise SM</h1>
+  <div class="pick"><label class="sm" for="selCliente">Cliente</label><select id="selCliente"></select><button id="btnCliente" class="ghost" title="Cadastrar cliente">+ Cliente</button></div>
+  <div class="pick"><label class="sm" for="selAnalise">Período</label><select id="selAnalise"></select><button id="btnNova" class="primary">Nova análise</button></div>
+</div></div>
+
+<div class="wrap">
+  <div id="novoCliente" class="row note" style="margin-top:14px" hidden>
+    <label for="inpCliente">Nome do cliente ou perfil</label>
+    <input type="text" id="inpCliente" placeholder="@perfil ou nome">
+    <button id="btnSalvarCliente" class="primary">Cadastrar</button>
+    <button id="btnCancelarCliente" class="ghost">Cancelar</button>
+  </div>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="dash" aria-selected="true">Dashboard</button>
+    <button role="tab" data-tab="dados" aria-selected="false">Estratégia e números</button>
+    <button role="tab" data-tab="gloss" aria-selected="false">Como ler cada métrica</button>
+  </div>
+  <p id="status" class="note" style="margin-bottom:18px">Carregando suas análises…</p>
+  <main id="dash" class="stack"></main>
+  <main id="dados" class="stack" hidden></main>
+  <main id="gloss" hidden></main>
+</div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const nf=new Intl.NumberFormat('pt-BR');
+const fmt=v=>v==null||!isFinite(v)?'—':nf.format(Math.round(v));
+const dec=(v,d=1)=>v==null||!isFinite(v)?'—':v.toLocaleString('pt-BR',{minimumFractionDigits:d,maximumFractionDigits:d});
+const pct=(v,d=1)=>v==null||!isFinite(v)?'—':dec(v,d)+'%';
+const num=v=>{if(v===''||v==null)return null;if(typeof v==='number')return isFinite(v)?v:null;const n=Number(String(v).trim().replace(/%/g,'').replace(/\./g,'').replace(',','.'));return isFinite(n)?n:null};
+const show=v=>v==null?'':String(v).replace('.',',');
+const ratio=(a,b)=>a!=null&&b?a/b*100:null;
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const dataBR=s=>s?s.split('-').reverse().join('/'):'';
+
+/* ---------- esquema dos números ---------- */
+const SECOES=[
+ ['Seguidores',[['seg_total','Total de seguidores no fim do período'],['seg_novos','Novos seguidores'],['seg_perdas','Deixaram de seguir']]],
+ ['Alcance e impressões',[['alc_total','Alcance total (contas alcançadas)'],['alc_org','Alcance orgânico'],['alc_pago','Alcance pago (tráfego)'],['alc_naoseg','% do alcance vindo de não seguidores'],['impressoes','Visualizações / impressões'],['posts','Posts publicados no período']]],
+ ['Engajamento',[['interacoes','Interações totais'],['curtidas','Curtidas'],['comentarios','Comentários'],['salvamentos','Salvamentos'],['compart','Compartilhamentos']]],
+ ['Perfil',[['visitas','Visitas ao perfil'],['cliques','Cliques no link (bio, botões)']]],
+ ['Reels',[['reels_qtd','Reels publicados'],['reels_views','Visualizações totais'],['reels_3s','% que passou dos 3 primeiros segundos'],['reels_ret','Retenção média (%)'],['reels_inter','Interações em Reels'],['reels_alc','Contas alcançadas por Reels'],['reels_seg','Novos seguidores vindos de Reels']]],
+ ['Feed (carrossel e imagem)',[['feed_qtd','Posts de feed publicados'],['feed_views','Visualizações totais'],['feed_inter','Interações no feed'],['feed_alc','Contas alcançadas'],['feed_salv','Salvamentos'],['feed_seg','Novos seguidores vindos do feed']]],
+ ['Metas do período (se houver)',[['meta_seg','Meta de novos seguidores'],['meta_leads','Meta de leads'],['leads_total','Leads captados no período']]]
+];
+const CAMPOS=SECOES.flatMap(s=>s[1]);
+const COMP=[['seg','Seguidores','seg_total'],['alc','Alcance','alc_total'],['views','Visualizações','impressoes'],['inter','Interações','interacoes'],['cliques','Cliques','cliques']];
+const FORMATOS=['Reels','Carrossel','Imagem única','Story'];
+const CTAS=['Salvar','Compartilhar','Comentar','Seguir','Link / direct','Sem CTA'];
+const CMET=[['views','Visualiz.'],['alcance','Alcance'],['interacoes','Interações'],['salvamentos','Salv.'],['compart','Compart.'],['comentarios','Coment.'],['novosSeg','Novos seg.'],['leads','Leads']];
+const LISTAS=[['interacoes','Mais interações'],['views','Mais visualizações'],['novosSeg','Mais seguidores novos'],['leads','Mais leads']];
+
+const EXEMPLO={id:'exemplo',exemplo:true,periodoDias:30,inicio:'2026-09-01',fim:'2026-09-30',trafego:true,
+ estrategia:'Trimestre de construção de autoridade local: ser a primeira referência em fisioterapia pélvica na cidade antes de abrir a agenda de grupos.',
+ objetivo:'Crescer a base de não seguidores e captar 25 contatos para a lista de espera.',
+ n:{seg_total:4820,seg_novos:312,seg_perdas:74,alc_total:38400,alc_org:29100,alc_pago:9300,alc_naoseg:46,impressoes:96500,posts:18,interacoes:2890,curtidas:1620,comentarios:210,salvamentos:640,compart:420,visitas:2150,cliques:186,reels_qtd:8,reels_views:61200,reels_3s:58,reels_ret:34,reels_inter:1480,reels_alc:27300,reels_seg:190,feed_qtd:10,feed_views:35300,feed_inter:1410,feed_alc:14800,feed_salv:520,feed_seg:95,meta_seg:300,meta_leads:25,leads_total:17},
+ anteriores:[{rotulo:'Junho',seg:4190,alc:24800,views:61000,inter:2310,cliques:120},{rotulo:'Julho',seg:4390,alc:29600,views:72400,inter:2240,cliques:141},{rotulo:'Agosto',seg:4582,alc:33100,views:84900,inter:2120,cliques:158}],
+ conteudos:[
+  {titulo:'5 sinais de que seu assoalho pélvico pede atenção',formato:'Carrossel',tema:'Sinais e sintomas',cta:'Salvar',views:9800,alcance:6100,interacoes:540,salvamentos:210,compart:96,comentarios:18,novosSeg:41,leads:3},
+  {titulo:'O que ninguém conta sobre o pós-parto',formato:'Reels',tema:'Pós-parto',cta:'Compartilhar',views:18400,alcance:12900,interacoes:610,salvamentos:88,compart:170,comentarios:44,novosSeg:83,leads:2},
+  {titulo:'Passo a passo: respiração para o parto',formato:'Carrossel',tema:'Gestação',cta:'Comentar',views:7200,alcance:4300,interacoes:390,salvamentos:190,compart:60,comentarios:9,novosSeg:22,leads:1},
+  {titulo:'Lista de espera do grupo de gestantes',formato:'Imagem única',tema:'Oferta',cta:'Link / direct',views:2100,alcance:1700,interacoes:64,salvamentos:6,compart:4,comentarios:5,novosSeg:2,leads:9},
+  {titulo:'Mito ou verdade: escape de xixi é normal?',formato:'Reels',tema:'Sinais e sintomas',cta:'Seguir',views:14100,alcance:9800,interacoes:420,salvamentos:52,compart:88,comentarios:31,novosSeg:64,leads:2}],
+ fechamento:{funcionou:'',melhoria:'',acoes:''},analiseIA:''};
+
+/* ---------- armazenamento ---------- */
+const Store={db:null,local:false,
+ async init(){
+  try{this.db=window.claude&&window.claude.use?await window.claude.use('db'):null}catch(e){this.db=null}
+  if(this.db){try{
+    const [c,a]=await Promise.all([this.db.collection('clientes').get(),this.db.collection('analises').limit(1000).get()]);
+    return {clientes:c.docs.map(d=>({...d.data(),id:d.id})),analises:a.docs.map(d=>({...d.data(),id:d.id}))};
+  }catch(e){this.db=null}}
+  this.local=true;
+  try{return JSON.parse(localStorage.getItem('oasm')||'null')||{clientes:[],analises:[]}}catch(e){return {clientes:[],analises:[]}}
+ },
+ async put(col,obj){
+  if(this.db){const {id,...body}=obj;await this.db.collection(col).doc(id).set(body)}
+  else this.flush();
+ },
+ async del(col,id){ if(this.db) await this.db.collection(col).doc(id).delete(); else this.flush(); },
+ flush(){try{localStorage.setItem('oasm',JSON.stringify({clientes:S.clientes,analises:S.analises}))}catch(e){}}
+};
+
+const S={clientes:[],analises:[],clienteId:null,analiseId:null,tab:'dash',draft:null,metFormato:'interacoes',sample:null,canImg:false,ctl:null};
+const doCliente=()=>S.analises.filter(a=>a.clienteId===S.clienteId).sort((a,b)=>(b.fim||'').localeCompare(a.fim||''));
+const atual=()=>S.analises.find(a=>a.id===S.analiseId)||(S.clientes.length?null:EXEMPLO);
+const novoDraft=()=>({id:uid('a'),clienteId:S.clienteId,periodoDias:30,inicio:'',fim:'',trafego:false,estrategia:'',objetivo:'',n:{},anteriores:[{},{},{}],conteudos:[{},{},{}],fechamento:{funcionou:'',melhoria:'',acoes:''},analiseIA:''});
+
+/* ---------- cálculos ---------- */
+function calc(a){const n=a.n||{};
+ const delta=n.seg_novos!=null||n.seg_perdas!=null?(n.seg_novos||0)-(n.seg_perdas||0):null;
+ const base=n.seg_total!=null&&delta!=null?n.seg_total-delta:null;
+ return {delta,base,cresc:ratio(delta,base),perda:ratio(n.seg_perdas,base),eng:ratio(n.interacoes,n.alc_total),
+  freq:n.posts!=null?n.posts/((a.periodoDias||30)/7):null,conv:ratio(n.seg_novos,n.visitas),ctr:ratio(n.cliques,n.visitas),
+  pago:ratio(n.alc_pago,n.alc_total),reelsEng:ratio(n.reels_inter,n.reels_alc),feedEng:ratio(n.feed_inter,n.feed_alc),
+  rep:n.impressoes!=null&&n.alc_total?n.impressoes/n.alc_total:null};
+}
+function series(a){ // por métrica: valores dos períodos anteriores + atual
+ const ant=(a.anteriores||[]).filter(p=>p&&(p.rotulo||COMP.some(m=>p[m[0]]!=null)));
+ return {rotulos:[...ant.map((p,i)=>p.rotulo||'Período '+(i+1)),'Período atual'],
+  linhas:COMP.map(([k,nome,campo])=>({k,nome,v:[...ant.map(p=>p[k]??null),(a.n||{})[campo]??null]}))};
+}
+function tendencia(v){const x=v.filter(n=>n!=null);if(x.length<2)return null;
+ const d1=x[x.length-1]-x[x.length-2],d2=x.length>2?x[x.length-2]-x[x.length-3]:null;
+ if(d1<0&&d2!=null&&d2<0)return {c:'bad',i:'▼',t:'Queda repetida: padrão'};
+ if(d1<0)return {c:'',i:'▼',t:'Queda isolada: pode ser ruído'};
+ if(d1>0&&d2!=null&&d2>0)return {c:'good',i:'▲',t:'Alta repetida: padrão'};
+ if(d1>0)return {c:'',i:'▲',t:'Alta isolada: observar'};
+ return {c:'',i:'●',t:'Estável'};
+}
+const conts=a=>(a.conteudos||[]).filter(c=>c&&c.titulo);
+function tops(a){return LISTAS.map(([k,nome])=>({k,nome,itens:conts(a).filter(c=>c[k]>0).sort((x,y)=>y[k]-x[k]).slice(0,3)}))}
+function porFormato(a,k){const g={};conts(a).forEach(c=>{if(c[k]==null)return;(g[c.formato||'Sem formato']??=[]).push(c[k])});
+ return Object.entries(g).map(([f,v])=>({f,n:v.length,m:v.reduce((s,x)=>s+x,0)/v.length})).sort((x,y)=>y.m-x.m)}
+function porGrupo(a,campo){const g={};conts(a).forEach(c=>{const key=(c[campo]||'').trim();if(!key)return;const o=g[key]??={n:0,inter:0,leads:0,seg:0};o.n++;o.inter+=c.interacoes||0;o.leads+=c.leads||0;o.seg+=c.novosSeg||0});
+ return Object.entries(g).map(([nome,o])=>({nome,...o,mInter:o.inter/o.n})).sort((x,y)=>y.mInter-x.mInter)}
+
+function leitura(a){const n=a.n||{},c=calc(a),ok=[],mel=[],info=[];
+ if(c.delta!=null){const t=`${fmt(n.seg_novos)} ganhos e ${fmt(n.seg_perdas)} perdidos, saldo de ${c.delta>0?'+':''}${fmt(c.delta)}${c.cresc!=null?` (${pct(c.cresc)} de crescimento, ${pct(c.perda)} de perda)`:''}.`;
+  (c.delta>0?ok:mel).push((c.delta>0?'Saldo de seguidores positivo: ':'Saldo de seguidores não foi positivo: ')+t)}
+ if(n.meta_seg!=null&&n.seg_novos!=null)(n.seg_novos>=n.meta_seg?ok:mel).push(`Meta de novos seguidores: ${fmt(n.seg_novos)} de ${fmt(n.meta_seg)} (${pct(ratio(n.seg_novos,n.meta_seg),0)} da meta).`);
+ if(n.meta_leads!=null&&n.leads_total!=null)(n.leads_total>=n.meta_leads?ok:mel).push(`Meta de leads: ${fmt(n.leads_total)} de ${fmt(n.meta_leads)} (${pct(ratio(n.leads_total,n.meta_leads),0)} da meta).${n.leads_total<n.meta_leads?' Entra como ponto de melhoria e precisa virar ação no próximo período.':''}`);
+ if(c.eng!=null)info.push(`Taxa de engajamento: ${pct(c.eng)}. De cada 100 pessoas que viram o conteúdo, cerca de ${dec(c.eng,0)} tomaram alguma ação.`);
+ if(n.interacoes&&n.curtidas!=null){const pc=ratio(n.curtidas,n.interacoes),ps=ratio(n.salvamentos,n.interacoes),pp=ratio(n.compart,n.interacoes);
+  const t=`Composição das interações: ${pct(pc,0)} curtidas, ${pct(ps,0)} salvamentos, ${pct(pp,0)} compartilhamentos.`;
+  if(pc>=70)mel.push(t+' A maior parte é curtida, que é métrica de vaidade; salvamento indica valor e compartilhamento puxa não seguidores.');else info.push(t)}
+ if(n.alc_naoseg!=null)info.push(`${pct(n.alc_naoseg,0)} do alcance veio de não seguidores. Em perfil pequeno é natural a maior parte vir de seguidores; para crescer, essa fatia precisa aumentar.`);
+ if(a.trafego&&c.pago!=null)info.push(`Alcance pago respondeu por ${pct(c.pago,0)} do alcance total; o restante é orgânico.`);
+ if(c.rep!=null)info.push(`Cada conta alcançada viu o conteúdo em média ${dec(c.rep)} vezes (visualizações ÷ alcance).`);
+ if(c.conv!=null){const t=`${fmt(n.visitas)} visitas ao perfil e ${fmt(n.seg_novos)} novos seguidores: ${pct(c.conv)} das visitas viraram seguidor.`;
+  if(c.conv<10)mel.push(t+' Visitas altas com poucos seguidores são sinal de que bio, destaques ou posts fixados não estão convertendo.');else ok.push(t)}
+ if(c.ctr!=null)info.push(`${pct(c.ctr)} das visitas ao perfil clicaram no link.`);
+ if(c.reelsEng!=null&&c.feedEng!=null)info.push(`Engajamento por alcance: Reels ${pct(c.reelsEng)}, feed ${pct(c.feedEng)}.`);
+ series(a).linhas.forEach(l=>{const t=tendencia(l.v);if(!t)return;
+  if(t.c==='bad')mel.push(`${l.nome} caiu dois períodos seguidos. Queda repetida é padrão, não ruído.`);
+  else if(t.c==='good')ok.push(`${l.nome} subiu dois períodos seguidos.`);
+  else if(t.i==='▼')info.push(`${l.nome} caiu só neste período. Queda isolada pode ser ruído: observar antes de mudar a rota.`)});
+ const fi=porFormato(a,'interacoes');
+ if(fi.length>1){const [x,y]=fi;info.push(`Formato vs. formato (médias): ${x.f} tem ${fmt(x.m)} interações por post (${x.n} post${x.n>1?'s':''}) contra ${fmt(y.m)} de ${y.f} (${y.n}). Não é motivo para abandonar ${y.f}; é hipótese para testar mais ${x.f} e ver se o resultado se sustenta.`)}
+ const tp=tops(a),em={};tp.forEach(l=>l.itens.forEach(c=>(em[c.titulo]??=[]).push(l.nome.replace('Mais ',''))));
+ const multi=Object.entries(em).filter(e=>e[1].length>1).sort((x,y)=>y[1].length-x[1].length);
+ multi.forEach(([t,ls])=>ok.push(`"${t}" aparece em ${ls.length} listas (${ls.join(', ')}). ${ls.length>=3?'Sinal forte de que vale replicar.':'Já é um sinal.'}`));
+ const cheias=tp.filter(l=>l.itens.length);
+ if(cheias.length>1&&!multi.length)info.push('As listas de melhores conteúdos não se repetem. Isso também é informação: alcance e conversão podem estar desconectados.');
+ const lv=tp.find(l=>l.k==='views'),ll=tp.find(l=>l.k==='leads');
+ if(ll&&ll.itens[0]&&lv&&!lv.itens.some(c=>c.titulo===ll.itens[0].titulo))info.push(`"${ll.itens[0].titulo}" foi o que mais trouxe lead (${fmt(ll.itens[0].leads)}) sem estar entre os mais vistos. Nem tudo que dá alcance dá lead; conteúdo de qualificação engaja menos e segue sendo crucial.`);
+ conts(a).forEach(c=>{if(c.cta==='Comentar'&&(c.salvamentos||0)>2*(c.comentarios||0)&&c.salvamentos>0)mel.push(`"${c.titulo}" pediu comentário, mas teve ${fmt(c.salvamentos)} salvamentos e ${fmt(c.comentarios||0)} comentários. O conteúdo foi útil; o CTA pode ter pedido a ação errada (salvar ou compartilhar faria mais sentido).`)});
+ return {ok,mel,info};
+}
+
+/* ---------- dashboard ---------- */
+const chip=t=>t?`<span class="chip ${t.c}">${t.i} ${esc(t.t)}</span>`:'';
+function renderDash(){const a=atual(),el=$('#dash');
+ if(!a){el.innerHTML=`<div class="note">Este cliente ainda não tem análise. Clique em <b>Nova análise</b> para informar a estratégia, o objetivo e os números do período.</div>`;return}
+ const n=a.n||{},c=calc(a),L=leitura(a),se=series(a),tp=tops(a),pf=porFormato(a,S.metFormato),max=Math.max(...pf.map(p=>p.m),1);
+ const temas=porGrupo(a,'tema'),ctas=porGrupo(a,'cta'),f=a.fechamento||{};
+ const dl=rows=>`<dl>${rows.map(([k,v])=>`<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+ el.innerHTML=`
+ ${a.exemplo?`<div class="note"><b>Exemplo com dados fictícios.</b> Cadastre um cliente em “+ Cliente” e crie a primeira análise para ver os números reais aqui.</div>`:''}
+ <section><div class="ctx">
+   <div><span class="sm">Macro estratégia</span><p>${esc(a.estrategia)||'Não informada'}</p></div>
+   <div><span class="sm">Objetivo do período</span><p>${esc(a.objetivo)||'Não informado'}</p></div>
+   <div><span class="sm">Período analisado</span><p>Últimos ${a.periodoDias} dias${a.inicio&&a.fim?` · ${dataBR(a.inicio)} a ${dataBR(a.fim)}`:''}<br>${a.trafego?'Com tráfego pago':'Sem tráfego pago'}</p></div>
+ </div></section>
+
+ <section><h2>Números do período</h2><div class="grid">
+  <div class="blk"><h3>Seguidores</h3><div class="big">${c.delta==null?'—':(c.delta>0?'+':'')+fmt(c.delta)}<small>saldo</small></div>
+   ${dl([['Total',fmt(n.seg_total)],['Novos',fmt(n.seg_novos)],['Perdas',fmt(n.seg_perdas)],['% de crescimento',pct(c.cresc)],['% de perda',pct(c.perda)]])}</div>
+  <div class="blk"><h3>Alcance e impressões</h3><div class="big">${fmt(n.alc_total)}<small>contas</small></div>
+   ${dl([['Orgânico',fmt(n.alc_org)],['Pago',a.trafego?fmt(n.alc_pago):'sem tráfego'],['De não seguidores',pct(n.alc_naoseg,0)],['Impressões',fmt(n.impressoes)],['Frequência',c.freq==null?'—':dec(c.freq)+' posts/sem.']])}</div>
+  <div class="blk"><h3>Engajamento</h3><div class="big">${pct(c.eng)}<small>taxa</small></div>
+   ${dl([['Interações totais',fmt(n.interacoes)],['Salvamentos',fmt(n.salvamentos)],['Compartilhamentos',fmt(n.compart)],['Comentários',fmt(n.comentarios)],['Curtidas',fmt(n.curtidas)]])}</div>
+  <div class="blk"><h3>Perfil</h3><div class="big">${fmt(n.visitas)}<small>visitas</small></div>
+   ${dl([['Cliques no link',fmt(n.cliques)],['Visitas que clicaram',pct(c.ctr)],['Visitas que seguiram',pct(c.conv)],['Leads no período',fmt(n.leads_total)]])}</div>
+  <div class="blk"><h3>Reels</h3><div class="big">${fmt(n.reels_views)}<small>visualizações</small></div>
+   ${dl([['Reels publicados',fmt(n.reels_qtd)],['Passaram dos 3 s',pct(n.reels_3s,0)],['Retenção média',pct(n.reels_ret,0)],['Engajamento',pct(c.reelsEng)],['Novos seguidores',fmt(n.reels_seg)]])}</div>
+  <div class="blk"><h3>Feed</h3><div class="big">${fmt(n.feed_views)}<small>visualizações</small></div>
+   ${dl([['Posts publicados',fmt(n.feed_qtd)],['Engajamento real',pct(c.feedEng)],['Contas alcançadas',fmt(n.feed_alc)],['Salvamentos',fmt(n.feed_salv)],['Novos seguidores',fmt(n.feed_seg)]])}</div>
+ </div></section>
+
+ <section><h2>Lado a lado com os períodos anteriores</h2>
+  <p class="sub" style="margin-bottom:12px">O que se repete por dois períodos é padrão. Uma variação isolada pode ser só ruído.</p>
+  <div class="scroll"><table><thead><tr><th>Métrica</th>${se.rotulos.map(r=>`<th>${esc(r)}</th>`).join('')}<th>O que se repete</th></tr></thead><tbody>
+  ${se.linhas.map(l=>`<tr><td>${l.nome}</td>${l.v.map((v,i)=>{const p=i?l.v[i-1]:null,d=v!=null&&p?ratio(v-p,p):null;
+    return `<td class="${i===l.v.length-1?'now':''}">${fmt(v)}${d!=null?`<span class="var ${d>0?'up':d<0?'down':''}">${d>0?'▲ +':d<0?'▼ ':''}${pct(d)}</span>`:''}</td>`}).join('')}<td>${chip(tendencia(l.v))||'<span class="sm">sem histórico</span>'}</td></tr>`).join('')}
+  </tbody></table></div></section>
+
+ <section><h2>Melhores conteúdos do período</h2>
+  ${conts(a).length?`<div class="tops">${tp.map(l=>`<div class="blk"><h3>${l.nome}</h3>${l.itens.length?`<ol>${l.itens.map(c=>`<li><span>${esc(c.titulo)}</span><b>${fmt(c[l.k])}</b><em>${esc(c.formato||'')}${c.tema?' · '+esc(c.tema):''}${c.cta?' · CTA: '+esc(c.cta):''}</em></li>`).join('')}</ol>`:'<p class="sub">Sem dados nesta lista.</p>'}</div>`).join('')}</div>`
+   :'<p class="note">Cadastre os conteúdos do período em “Estratégia e números” para montar as listas.</p>'}</section>
+
+ ${conts(a).length?`<section><div class="row" style="justify-content:space-between;margin-bottom:12px"><h2>Formato vs. formato</h2>
+   <div class="pick"><label class="sm" for="selMet">Média por post de</label><select id="selMet">${CMET.map(([k,t])=>`<option value="${k}" ${k===S.metFormato?'selected':''}>${t}</option>`).join('')}</select></div></div>
+  <div class="blk"><div class="bars">${pf.length?pf.map(p=>`<div class="bar-row"><span>${esc(p.f)} <small>(${p.n})</small></span><div class="track"><div class="fill" style="width:${p.m/max*100}%"></div></div><b>${fmt(p.m)}</b></div>`).join(''):'<p class="sub">Sem dados para esta métrica.</p>'}</div>
+  <p class="sub">Médias, não totais. Entre parênteses, quantos posts de cada formato entraram na conta.</p></div></section>
+
+ <section><h2>Padrões em comum</h2><div class="grid">
+  ${[['Por assunto / tema',temas],['Por CTA',ctas]].map(([t,g])=>`<div class="blk"><h3>${t}</h3>${g.length?`<div class="scroll" style="border:0"><table><thead><tr><th></th><th>Posts</th><th>Média inter.</th><th>Novos seg.</th><th>Leads</th></tr></thead><tbody>${g.map(x=>`<tr><td>${esc(x.nome)}</td><td>${x.n}</td><td>${fmt(x.mInter)}</td><td>${fmt(x.seg)}</td><td>${fmt(x.leads)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="sub">Preencha esta coluna nos conteúdos.</p>'}</div>`).join('')}
+ </div></section>`:''}
+
+ <section><h2>Leitura dos números</h2>
+  <p class="sub" style="margin-bottom:12px">Só o que os dados informados sustentam. Causa, contexto e o que está fora do seu controle ficam com a sua visão analítica.</p>
+  <div class="read">
+   <div class="blk"><h3>Acima do esperado</h3>${L.ok.length?`<ul>${L.ok.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="sub">Nada se destacou nos dados informados.</p>'}</div>
+   <div class="blk"><h3>Pontos de melhoria</h3>${L.mel.length?`<ul>${L.mel.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="sub">Nenhum ponto abaixo do esperado nos dados informados.</p>'}</div>
+   <div class="blk"><h3>Para cruzar com a estratégia</h3>${L.info.length?`<ul>${L.info.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p class="sub">Faltam números para esta leitura.</p>'}</div>
+  </div></section>
+
+ <section id="secIA" ${S.sample?'':'hidden'}><h2>Análise escrita</h2>
+  <p class="sub" style="margin-bottom:12px">O Claude cruza os números com a estratégia e o objetivo informados. Usa a sua conta do Claude a cada pedido.</p>
+  <div class="blk"><div class="row"><button id="btnIA" class="primary">${a.analiseIA?'Escrever de novo':'Escrever análise'}</button><button id="btnStop" class="ghost" hidden>Parar</button><span id="iaMsg" class="sub"></span></div>
+  <div id="iaOut" class="ia">${esc(a.analiseIA||'')}</div></div></section>
+
+ <section><h2>Fechamento do ciclo</h2>
+  <p class="sub" style="margin-bottom:12px">Registre antes de abrir o próximo período. As ações precisam ser decisões concretas e conversar com o planejamento do negócio.</p>
+  <div class="read">
+   <label class="f"><span>O que funcionou e a sua hipótese de por quê</span><textarea id="fx_funcionou">${esc(f.funcionou||'')}</textarea></label>
+   <label class="f"><span>O que não funcionou / pontos de melhoria</span><textarea id="fx_melhoria">${esc(f.melhoria||'')}</textarea></label>
+   <label class="f"><span>Ações para o próximo período</span><textarea id="fx_acoes">${esc(f.acoes||'')}</textarea></label>
+  </div>
+  <div class="row" style="margin-top:12px"><button id="btnFech" class="primary" ${a.exemplo?'disabled':''}>Salvar fechamento</button><button id="btnEditar" class="ghost" ${a.exemplo?'disabled':''}>Editar números</button><button id="btnExcluir" class="ghost danger" ${a.exemplo?'disabled':''}>Excluir análise</button><span id="fechMsg" class="sub"></span></div>
+ </section>`;
+}
+
+/* ---------- formulário ---------- */
+function renderForm(){const d=S.draft,el=$('#dados');
+ if(!d){el.innerHTML=`<div class="note">Selecione um cliente e clique em <b>Nova análise</b>.</div>`;return}
+ const cli=S.clientes.find(c=>c.id===d.clienteId);
+ el.innerHTML=`
+ <section><h2>${cli?esc(cli.nome):'Cliente não selecionado'}</h2><p class="sub">Comece pelo contexto: sem estratégia e objetivo, o número não tem com o que ser comparado. Deixe em branco o que não tiver.</p></section>
+ <fieldset><legend>Contexto</legend><div class="fields">
+  <label class="f" style="grid-column:1/-1"><span>Qual era a macro estratégia? (do trimestre; se não houver, do mês ou o objetivo principal)</span><textarea id="d_estrategia">${esc(d.estrategia)}</textarea></label>
+  <label class="f" style="grid-column:1/-1"><span>Qual era o objetivo do período que está sendo analisado?</span><textarea id="d_objetivo">${esc(d.objetivo)}</textarea></label>
+  <label class="f"><span>Período analisado</span><select id="d_periodo">${[15,30,60,90].map(p=>`<option value="${p}" ${p===d.periodoDias?'selected':''}>Últimos ${p} dias</option>`).join('')}</select></label>
+  <label class="f"><span>Início</span><input type="date" id="d_inicio" value="${esc(d.inicio)}"></label>
+  <label class="f"><span>Fim</span><input type="date" id="d_fim" value="${esc(d.fim)}"></label>
+  <label class="f"><span>Houve tráfego pago?</span><select id="d_trafego"><option value="0">Não</option><option value="1" ${d.trafego?'selected':''}>Sim</option></select></label>
+ </div></fieldset>
+ <div id="prints" class="note row" ${S.canImg?'':'hidden'}><span><b>Tem prints do Insights?</b> Envie as imagens e os campos reconhecidos são preenchidos. Confira antes de salvar.</span>
+  <input type="file" id="inpPrints" accept="image/*" multiple><span id="printMsg"></span></div>
+ ${SECOES.map(([t,fs])=>`<fieldset><legend>${t}</legend><div class="fields">${fs.map(([k,l])=>`<label class="f"><span>${l}</span><input type="text" inputmode="decimal" id="n_${k}" data-n="${k}" value="${show(d.n[k])}"></label>`).join('')}</div></fieldset>`).join('')}
+ <fieldset><legend>Períodos anteriores (para comparar lado a lado)</legend>
+  <div class="scroll" style="border:0"><table class="entry"><thead><tr><th>Mês / período</th>${COMP.map(m=>`<th>${m[1]}</th>`).join('')}</tr></thead><tbody>
+  ${[0,1,2].map(i=>{const p=d.anteriores[i]||{};return `<tr><td><input type="text" id="p_${i}_rotulo" data-p="${i}" data-k="rotulo" value="${esc(p.rotulo||'')}" placeholder="${['3 períodos atrás','2 períodos atrás','Período anterior'][i]}"></td>${COMP.map(m=>`<td><input type="text" inputmode="decimal" id="p_${i}_${m[0]}" data-p="${i}" data-k="${m[0]}" value="${show(p[m[0]])}"></td>`).join('')}</tr>`}).join('')}
+  </tbody></table></div><p class="sub" style="margin-top:8px">Do mais antigo para o mais recente. O período atual vem dos campos acima.</p></fieldset>
+ <fieldset><legend>Conteúdos do período</legend>
+  <div class="scroll" style="border:0"><table class="entry"><thead><tr><th>Conteúdo</th><th>Formato</th><th>Assunto / tema</th><th>CTA</th>${CMET.map(m=>`<th>${m[1]}</th>`).join('')}<th></th></tr></thead><tbody>
+  ${d.conteudos.map((c,i)=>`<tr><td><input type="text" id="c_${i}_titulo" data-c="${i}" data-k="titulo" value="${esc(c.titulo||'')}" placeholder="Título ou descrição"></td>
+   <td><select id="c_${i}_formato" data-c="${i}" data-k="formato">${FORMATOS.map(f=>`<option ${f===c.formato?'selected':''}>${f}</option>`).join('')}</select></td>
+   <td><input type="text" id="c_${i}_tema" data-c="${i}" data-k="tema" value="${esc(c.tema||'')}"></td>
+   <td><select id="c_${i}_cta" data-c="${i}" data-k="cta">${CTAS.map(f=>`<option ${f===(c.cta||'Sem CTA')?'selected':''}>${f}</option>`).join('')}</select></td>
+   ${CMET.map(m=>`<td><input type="text" inputmode="decimal" id="c_${i}_${m[0]}" data-c="${i}" data-k="${m[0]}" value="${show(c[m[0]])}"></td>`).join('')}
+   <td><button class="ghost" data-rm="${i}" title="Remover linha">×</button></td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="row" style="margin-top:10px"><button id="btnAddC" class="ghost">+ Conteúdo</button><span class="sub">Leads só se você conseguir rastrear de qual conteúdo vieram.</span></div></fieldset>
+ <div class="row"><button id="btnSalvar" class="primary">Salvar e ver dashboard</button><span id="saveMsg" class="sub"></span></div>`;
+}
+function lerForm(){const d=S.draft;if(!d||!$('#d_estrategia'))return;
+ d.estrategia=$('#d_estrategia').value.trim();d.objetivo=$('#d_objetivo').value.trim();d.periodoDias=+$('#d_periodo').value;
+ d.inicio=$('#d_inicio').value;d.fim=$('#d_fim').value;d.trafego=$('#d_trafego').value==='1';
+ d.n={};$$('[data-n]').forEach(i=>{const v=num(i.value);if(v!=null)d.n[i.dataset.n]=v});
+ d.anteriores=[{},{},{}];$$('[data-p]').forEach(i=>{const k=i.dataset.k,v=k==='rotulo'?i.value.trim():num(i.value);if(v!==''&&v!=null)d.anteriores[+i.dataset.p][k]=v});
+ const cs=[];$$('[data-c]').forEach(i=>{const k=i.dataset.k,o=cs[+i.dataset.c]??={};const txt=['titulo','formato','tema','cta'].includes(k);const v=txt?i.value.trim():num(i.value);if(v!==''&&v!=null)o[k]=v});
+ d.conteudos=cs;
+}
+
+/* ---------- barra e navegação ---------- */
+function renderBar(){
+ $('#selCliente').innerHTML=S.clientes.length?S.clientes.map(c=>`<option value="${c.id}" ${c.id===S.clienteId?'selected':''}>${esc(c.nome)}</option>`).join(''):'<option>Exemplo (dados fictícios)</option>';
+ const as=doCliente();
+ $('#selAnalise').innerHTML=as.length?as.map(a=>`<option value="${a.id}" ${a.id===S.analiseId?'selected':''}>${a.fim?'até '+dataBR(a.fim)+' · ':''}${a.periodoDias} dias</option>`).join(''):`<option>${S.clientes.length?'Nenhuma análise ainda':'Setembro · 30 dias'}</option>`;
+ $('#selAnalise').disabled=!as.length;$('#selCliente').disabled=!S.clientes.length;
+}
+function setTab(t){S.tab=t;$$('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t));
+ ['dash','dados','gloss'].forEach(id=>$('#'+id).hidden=id!==t);
+ if(t==='dash')renderDash();if(t==='dados')renderForm();}
+function escolherCliente(id){S.clienteId=id;const as=doCliente();S.analiseId=as[0]?.id||null;S.draft=as[0]?structuredClone(as[0]):null;renderBar();setTab(S.tab)}
+function status(t){const s=$('#status');s.hidden=!t;s.textContent=t||''}
+
+async function salvarAnalise(){lerForm();const d=S.draft,m=$('#saveMsg');
+ if(!S.clientes.some(c=>c.id===d.clienteId)){m.textContent='Cadastre um cliente em “+ Cliente” antes de salvar.';return}
+ if(!d.estrategia||!d.objetivo){m.textContent='Informe a macro estratégia e o objetivo do período.';$('#d_estrategia').focus();return}
+ d.conteudos=d.conteudos.filter(c=>c&&c.titulo);d.atualizadoEm=new Date().toISOString();
+ $('#btnSalvar').disabled=true;m.textContent='Salvando…';
+ const i=S.analises.findIndex(a=>a.id===d.id),copia=structuredClone(d);
+ if(i>=0)S.analises[i]=copia;else S.analises.push(copia);
+ try{await Store.put('analises',copia);S.analiseId=d.id;renderBar();setTab('dash');window.scrollTo(0,0)}
+ catch(e){m.textContent='Não foi possível salvar agora. Seus números continuam na tela; tente de novo em instantes.';$('#btnSalvar').disabled=false}
+}
+async function atualizar(a,msgEl,okTxt){try{await Store.put('analises',a);if(msgEl)msgEl.textContent=okTxt}catch(e){if(msgEl)msgEl.textContent='Não foi possível salvar agora. Tente de novo.'}}
+
+/* ---------- Claude: prints e análise ---------- */
+const ERRO={rate_limited:'Limite de uso atingido. Tente de novo mais tarde.',session_expired:'Sua sessão expirou. Entre de novo no Claude.',image_rejected:'Não foi possível ler essas imagens. Envie PNG ou JPG.',invalid_json:'A leitura não veio no formato esperado. Tente de novo.',refused:'O pedido foi recusado.',not_granted:'O uso do Claude não foi autorizado nesta página.'};
+async function lerPrints(files){const m=$('#printMsg');if(!files.length)return;lerForm();m.textContent='Lendo os prints…';
+ const prompt=`As imagens são prints do Instagram Insights / Meta Business Suite de um perfil. Extraia apenas números que estejam visíveis; não estime nem calcule nada.
+Responda só com um objeto JSON: {"numeros":{...},"conteudos":[...]}.
+Chaves possíveis em "numeros" (omita o que não aparecer; valores numéricos, sem separador de milhar; "1,2 mil" vira 1200):
+${CAMPOS.map(([k,l])=>k+' = '+l).join('\n')}
+"conteudos" é a lista de posts individuais visíveis, cada um {"titulo","formato" (um de: ${FORMATOS.join(', ')}),"views","alcance","interacoes","salvamentos","compart","comentarios","novosSeg"}; lista vazia se não houver.`;
+ try{const r=await S.sample.json(prompt,{images:files});const d=S.draft;let q=0;
+  Object.entries(r?.numeros||{}).forEach(([k,v])=>{if(CAMPOS.some(c=>c[0]===k)&&num(v)!=null){d.n[k]=num(v);q++}});
+  const novos=(r?.conteudos||[]).filter(c=>c&&c.titulo).map(c=>{const o={titulo:String(c.titulo),formato:FORMATOS.includes(c.formato)?c.formato:'Reels'};CMET.forEach(([k])=>{if(num(c[k])!=null)o[k]=num(c[k])});return o});
+  d.conteudos=[...d.conteudos.filter(c=>c&&c.titulo),...novos];if(!d.conteudos.length)d.conteudos=[{}];
+  const ks=Object.keys(r?.numeros||{});renderForm();ks.forEach(k=>$('#n_'+k)?.closest('.f')?.classList.add('filled'));
+  $('#printMsg').textContent=`${q} campo${q===1?'':'s'} e ${novos.length} conteúdo${novos.length===1?'':'s'} preenchidos. Confira os destacados.`;
+ }catch(e){m.textContent=ERRO[e?.code]||'Não foi possível ler os prints agora. Você pode digitar os números.';if(e?.code==='not_granted'||e?.code==='images_unavailable')$('#prints').hidden=true}
+}
+function promptAnalise(a){const L=leitura(a),cli=S.clientes.find(c=>c.id===a.clienteId);
+ return `Você é analista de métricas de Instagram. Escreva em português do Brasil, direto, sem floreio, a análise do período abaixo.
+
+REGRAS
+- Analise somente o que os dados e a estratégia informados sustentam. Não opine sobre o que não lhe cabe: a estratégia em si, o negócio, o produto, preços, design ou qualquer coisa que não esteja nos dados.
+- Não invente números nem benchmarks de mercado. Se faltar dado para concluir, diga que falta.
+- Toda explicação de causa é hipótese: marque como "hipótese".
+- Compare formatos por médias, nunca por totais. Diferença de formato é motivo para testar proporção, não para abandonar um formato.
+- Queda ou alta em dois períodos seguidos é padrão; variação isolada pode ser ruído e não justifica mudança de rota.
+- Curtida e comentário são métricas de vaidade. Salvamento indica conteúdo útil e atemporal; compartilhamento indica identificação e traz não seguidores. Interações só fazem sentido como taxa (interações ÷ alcance × 100).
+- Alcance alto não significa conteúdo bom. Nem tudo que dá alcance dá lead: conteúdo de qualificação, específico ou de produto engaja menos e é crucial.
+- Visitas ao perfil altas com poucos seguidores apontam para bio, destaques e fixados.
+- O mesmo conteúdo nas listas de interação, visualização e seguidores é sinal forte de replicar; listas totalmente diferentes indicam alcance e conversão desconectados.
+- CTA: se o público salvou e não comentou, o problema pode ser o pedido, não o conteúdo.
+
+FORMATO DA RESPOSTA (texto simples, sem markdown, com estes títulos em maiúsculas)
+LEITURA FRENTE À ESTRATÉGIA
+O QUE FUNCIONOU
+PONTOS DE MELHORIA
+AÇÕES PARA O PRÓXIMO PERÍODO
+O QUE OS DADOS NÃO RESPONDEM
+
+DADOS
+Cliente: ${cli?.nome||'exemplo'}
+Macro estratégia: ${a.estrategia}
+Objetivo do período: ${a.objetivo}
+Período: últimos ${a.periodoDias} dias. Tráfego pago: ${a.trafego?'sim':'não'}.
+Números: ${JSON.stringify(a.n)}
+Indicadores calculados: ${JSON.stringify(calc(a))}
+Períodos (mais antigo → atual): ${JSON.stringify(series(a))}
+Conteúdos: ${JSON.stringify(conts(a))}
+Médias de interação por formato: ${JSON.stringify(porFormato(a,'interacoes'))}
+Leitura automática: ${JSON.stringify(L)}
+Anotações de quem analisa: ${JSON.stringify(a.fechamento||{})}`;
+}
+async function escreverIA(){const a=atual(),out=$('#iaOut'),msg=$('#iaMsg'),b=$('#btnIA'),st=$('#btnStop');
+ S.ctl=new AbortController();b.disabled=true;st.hidden=false;msg.textContent='';out.textContent='Pensando…';
+ try{const {text,truncated}=await S.sample(promptAnalise(a),{signal:S.ctl.signal,cache:false,onText:({text})=>{out.textContent=text}});
+  out.textContent=text;if(truncated)msg.textContent='A resposta foi cortada por tamanho.';
+  if(!a.exemplo){a.analiseIA=text;await atualizar(a,null)}
+ }catch(e){out.textContent=e?.text??(a.analiseIA||'');if(e?.code!=='cancelled')msg.textContent=ERRO[e?.code]||'Não foi possível escrever a análise agora. Tente de novo.';if(e?.code==='not_granted')$('#secIA').hidden=true}
+ finally{b.disabled=false;st.hidden=true}
+}
+
+/* ---------- eventos ---------- */
+document.addEventListener('click',async e=>{const t=e.target.closest('button');if(!t)return;
+ if(t.dataset.tab){if(S.tab==='dados')lerForm();if(t.dataset.tab==='dados'&&!S.draft&&S.clienteId)S.draft=novoDraft();setTab(t.dataset.tab);return}
+ if(t.id==='btnCliente'){$('#novoCliente').hidden=false;$('#inpCliente').focus();return}
+ if(t.id==='btnCancelarCliente'){$('#novoCliente').hidden=true;return}
+ if(t.id==='btnSalvarCliente'){const nome=$('#inpCliente').value.trim();if(!nome){$('#inpCliente').focus();return}
+  const c={id:uid('c'),nome,criadoEm:new Date().toISOString()};S.clientes.push(c);t.disabled=true;
+  try{await Store.put('clientes',c);$('#inpCliente').value='';$('#novoCliente').hidden=true;S.clienteId=c.id;S.analiseId=null;S.draft=novoDraft();renderBar();setTab('dados')}
+  catch(err){S.clientes.pop();status('Não foi possível cadastrar o cliente agora. Tente de novo.')}
+  t.disabled=false;return}
+ if(t.id==='btnNova'){if(!S.clienteId){$('#novoCliente').hidden=false;$('#inpCliente').focus();return}S.draft=novoDraft();setTab('dados');window.scrollTo(0,0);return}
+ if(t.id==='btnAddC'){lerForm();S.draft.conteudos.push({});renderForm();$('#c_'+(S.draft.conteudos.length-1)+'_titulo')?.focus();return}
+ if(t.dataset.rm!=null){lerForm();S.draft.conteudos.splice(+t.dataset.rm,1);renderForm();return}
+ if(t.id==='btnSalvar'){salvarAnalise();return}
+ if(t.id==='btnEditar'){S.draft=structuredClone(atual());setTab('dados');window.scrollTo(0,0);return}
+ if(t.id==='btnFech'){const a=atual();a.fechamento={funcionou:$('#fx_funcionou').value,melhoria:$('#fx_melhoria').value,acoes:$('#fx_acoes').value};$('#fechMsg').textContent='Salvando…';atualizar(a,$('#fechMsg'),'Fechamento salvo.');return}
+ if(t.id==='btnExcluir'){if(t.dataset.ok){const id=S.analiseId;S.analises=S.analises.filter(a=>a.id!==id);try{await Store.del('analises',id)}catch(err){}escolherCliente(S.clienteId)}
+  else{t.dataset.ok=1;t.textContent='Confirmar exclusão';}return}
+ if(t.id==='btnIA'){escreverIA();return}
+ if(t.id==='btnStop'){S.ctl?.abort();return}
+});
+document.addEventListener('change',e=>{const t=e.target;
+ if(t.id==='selCliente')escolherCliente(t.value);
+ if(t.id==='selAnalise'){S.analiseId=t.value;S.draft=structuredClone(atual());setTab(S.tab)}
+ if(t.id==='selMet'){S.metFormato=t.value;renderDash()}
+ if(t.id==='inpPrints')lerPrints([...t.files]);
+});
+
+$('#gloss').innerHTML=`<div class="gloss">${[
+ ['Alcance','Quantas pessoas diferentes viram o post. Alcance baixo não significa post ruim e alcance alto não significa conteúdo bom: só diz para quantas pessoas o Instagram mostrou. Em perfil pequeno a maior parte vem de seguidores; em perfil maior, o ideal é vir de não seguidores.'],
+ ['Visualizações ou impressões','Quantas vezes o post apareceu na tela. Conta repetição: uma pessoa que viu 3 vezes soma 3 visualizações e 1 alcance.'],
+ ['Interações e taxa de engajamento','Curtidas, comentários, salvamentos e compartilhamentos somados. O número sozinho não indica crescimento. Use na taxa: interações ÷ alcance × 100. Ela diz quantas das pessoas que viram tomaram alguma ação; quanto maior, melhor.'],
+ ['Visitas ao perfil','A pessoa viu, ficou curiosa e entrou para saber quem você é. Por post, mostra qual formato, tema ou linha editorial gera interesse. Visitas altas com poucos seguidores: revisar bio, destaques e posts fixados.'],
+ ['Novos seguidores','Quem seguiu quer mais daquilo que gostou; repetir não é problema. Monitore ganho, perda e o saldo entre os dois. Perder seguidor é natural; o saldo é que precisa ser positivo. Para crescer, aumente a fatia de não seguidores.'],
+ ['Curtida','Métrica de vaidade. Não indica qualidade de público.'],
+ ['Compartilhamento','Tema relevante e identificação. Gera crescimento orgânico e é dos principais responsáveis por aumentar a fatia de não seguidores. Em fase de crescer, pense em conteúdo compartilhável.'],
+ ['Salvamento','A pessoa quer voltar depois: o conteúdo tem valor e é atemporal. Costuma ensinar algo aplicável, um passo a passo, uma técnica, ou resumir algo complexo de forma objetiva.'],
+ ['Comentário','Também é métrica de vaidade, mas não é reação passiva: foi uma decisão de participar. Nem todo comentário tem o mesmo peso.'],
+ ['CTA','Se ninguém faz o que você pede, o erro pode estar no pedido e não no conteúdo. Conteúdo útil pede salvar ou compartilhar. Conteúdo que abre conversa pede comentário. Conteúdo que terá continuação pede seguir.'],
+ ['Formato vs. formato','Compare a mesma métrica por médias, não por totais. Média maior em um formato é motivo para testar mais dele e observar, não para abandonar o outro.'],
+ ['Período vs. período','Métrica caindo dois períodos seguidos é padrão. Queda isolada pode ser ruído. Não decida de um mês para o outro; perceba o que se repete.'],
+ ['Interação vs. seguidores vs. visualização','O mesmo conteúdo nas três listas é sinal forte para replicar. Listas diferentes indicam alcance e conversão desconectados. Nem tudo que dá alcance dá lead: conteúdo de qualificação ou de produto engaja menos e é crucial.']
+].map(([t,d])=>`<div class="blk"><h3>${t}</h3><p>${d}</p></div>`).join('')}</div>`;
+
+/* ---------- início ---------- */
+renderBar();renderDash();
+(async()=>{
+ const d=await Store.init();S.clientes=d.clientes;S.analises=d.analises;
+ status(Store.local?'As análises ficam salvas só neste navegador.':'');
+ if(S.clientes.length)escolherCliente(S.clientes[0].id);else{renderBar();setTab(S.tab)}
+ try{S.sample=window.claude&&window.claude.use?await window.claude.use('sample'):null}catch(e){S.sample=null}
+ if(S.sample){const caps=await S.sample.limits().catch(()=>null);S.canImg=!!caps?.images;
+  if($('#secIA'))$('#secIA').hidden=false;if($('#prints'))$('#prints').hidden=!S.canImg}
+})();
+</script>
